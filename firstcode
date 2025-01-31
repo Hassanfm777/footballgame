@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #4CAF50;
+        }
+        #game-area {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            background-color: #8BC34A;
+            border: 2px solid #000;
+        }
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #000;
+        }
+        .goal {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: transparent;
+            border: 2px solid #FFF;
+            border-radius: 50%;
+        }
+        .obstacle {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid #FF0000;
+        }
+        #counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            color: #FFF;
+        }
+        #goal-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            color: #FFF;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-area">
+        <div id="counter">Collisions: 0</div>
+        <div id="goal-counter">Goals: 0</div>
+        <div class="goal" style="top: 50px; left: 50px;"></div>
+        <div class="goal" style="top: 50px; right: 50px;"></div>
+        <div class="goal" style="bottom: 50px; left: 250px;"></div>
+        <div class="obstacle" style="top: 150px; left: 150px;"></div>
+        <div class="obstacle" style="top: 200px; right: 200px;"></div>
+        <div class="obstacle" style="bottom: 100px; left: 100px;"></div>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('game-area');
+        const goals = document.querySelectorAll('.goal');
+        const obstacles = document.querySelectorAll('.obstacle');
+        const counterElement = document.getElementById('counter');
+        const goalCounterElement = document.getElementById('goal-counter');
+
+        let balls = [createBall(290, 190, 2, 2)]; // Initial ball (square)
+        let collisionCount = 0;
+        let goalCount = 0;
+
+        function createBall(x, y, dx, dy) {
+            const ball = document.createElement('div');
+            ball.className = 'ball';
+            ball.style.left = x + 'px';
+            ball.style.top = y + 'px';
+            gameArea.appendChild(ball);
+            return { element: ball, dx, dy };
+        }
+
+        function moveBall(ball) {
+            let x = parseInt(ball.element.style.left) + ball.dx;
+            let y = parseInt(ball.element.style.top) + ball.dy;
+
+            // Bounce off walls
+            if (x <= 0 || x >= gameArea.offsetWidth - ball.element.offsetWidth) {
+                ball.dx = -ball.dx;
+                increaseSpeed(ball);
+                collisionCount++;
+                counterElement.textContent = `Collisions: ${collisionCount}`;
+            }
+            if (y <= 0 || y >= gameArea.offsetHeight - ball.element.offsetHeight) {
+                ball.dy = -ball.dy;
+                increaseSpeed(ball);
+                collisionCount++;
+                counterElement.textContent = `Collisions: ${collisionCount}`;
+            }
+
+            ball.element.style.left = x + 'px';
+            ball.element.style.top = y + 'px';
+
+            checkCollision(ball);
+        }
+
+        function checkCollision(ball) {
+            const ballRect = ball.element.getBoundingClientRect();
+
+            // Check collision with goals (circles)
+            goals.forEach(goal => {
+                const goalRect = goal.getBoundingClientRect();
+                if (ballRect.left < goalRect.right &&
+                    ballRect.right > goalRect.left &&
+                    ballRect.top < goalRect.bottom &&
+                    ballRect.bottom > goalRect.top) {
+                    // Reflect the ball when it hits a goal
+                    ball.dx = -ball.dx;
+                    ball.dy = -ball.dy;
+                    increaseSpeed(ball);
+                    goalCount++;
+                    goalCounterElement.textContent = `Goals: ${goalCount}`;
+                }
+            });
+
+            // Check collision with obstacles (triangles)
+            obstacles.forEach(obstacle => {
+                const obstacleRect = obstacle.getBoundingClientRect();
+                if (ballRect.left < obstacleRect.right &&
+                    ballRect.right > obstacleRect.left &&
+                    ballRect.top < obstacleRect.bottom &&
+                    ballRect.bottom > obstacleRect.top) {
+                    // Reflect the ball when it hits an obstacle
+                    ball.dx = -ball.dx;
+                    ball.dy = -ball.dy;
+                    increaseSpeed(ball);
+                    collisionCount++;
+                    counterElement.textContent = `Collisions: ${collisionCount}`;
+                }
+            });
+
+            // Split the ball after 5 collisions
+            if (collisionCount >= 5 && balls.length < 2) {
+                splitBall(ball);
+                collisionCount = 0; // Reset collision count after splitting
+            }
+        }
+
+        function increaseSpeed(ball) {
+            ball.dx *= 1.1; // Increase speed by 10%
+            ball.dy *= 1.1;
+        }
+
+        function splitBall(ball) {
+            const newBall1 = createBall(
+                parseInt(ball.element.style.left),
+                parseInt(ball.element.style.top),
+                ball.dx, ball.dy
+            );
+            const newBall2 = createBall(
+                parseInt(ball.element.style.left),
+                parseInt(ball.element.style.top),
+                -ball.dx, -ball.dy
+            );
+            balls.push(newBall1, newBall2);
+        }
+
+        function gameLoop() {
+            balls.forEach(ball => moveBall(ball));
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop(); // Start the game loop
+    </script>
+</body>
+</html>
